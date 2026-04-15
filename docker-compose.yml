@@ -1,0 +1,91 @@
+version: '3.8'
+
+services:
+  # 短视频AI编剧助手主服务
+  short-video-ai:
+    build: .
+    container_name: short-video-ai
+    ports:
+      - "${SERVER_PORT:-5000}:5000"
+    environment:
+      # 豆包大模型配置（必填）
+      - ARK_API_KEY=${ARK_API_KEY}
+      - ARK_BASE_URL=${ARK_BASE_URL}
+      - ARK_MODEL=${ARK_MODEL:-doubao-pro-32k}
+
+      # 或使用OpenAI兼容模型（可选）
+      # - OPENAI_API_KEY=${OPENAI_API_KEY}
+      # - OPENAI_BASE_URL=${OPENAI_BASE_URL}
+      # - OPENAI_MODEL=${OPENAI_MODEL}
+
+      # 服务配置
+      - SERVER_PORT=5000
+      - SERVER_HOST=0.0.0.0
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+
+      # 超时配置
+      - TIMEOUT_SECONDS=${TIMEOUT_SECONDS:-900}
+
+      # Agent配置
+      - MAX_MESSAGES=${MAX_MESSAGES:-20}
+      - TEMPERATURE=${TEMPERATURE:-0.85}
+      - TOP_P=${TOP_P:-0.95}
+      - MAX_TOKENS=${MAX_TOKENS:-4096}
+      - MAX_COMPLETION_TOKENS=${MAX_COMPLETION_TOKENS:-32768}
+
+      # 图像生成配置
+      - IMAGE_GENERATION_API_KEY=${IMAGE_GENERATION_API_KEY}
+      - IMAGE_GENERATION_BASE_URL=${IMAGE_GENERATION_BASE_URL}
+
+    volumes:
+      # 日志目录
+      - ./logs:/app/logs
+      # 资源目录
+      - ./assets:/app/assets
+      # 配置文件
+      - ./config:/app/config
+      # 静态文件
+      - ./static:/app/static
+    restart: unless-stopped
+    networks:
+      - short-video-ai-network
+
+  # 可选：PostgreSQL数据库（用于持久化对话历史）
+  # postgres:
+  #   image: postgres:16-alpine
+  #   container_name: short-video-ai-db
+  #   environment:
+  #     - POSTGRES_USER=${POSTGRES_USER:-postgres}
+  #     - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+  #     - POSTGRES_DB=${POSTGRES_DB:-short_video_ai}
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   ports:
+  #     - "5432:5432"
+  #   restart: unless-stopped
+  #   networks:
+  #     - short-video-ai-network
+
+  # 可选：Nginx反向代理（用于生产环境）
+  # nginx:
+  #   image: nginx:alpine
+  #   container_name: short-video-ai-nginx
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   volumes:
+  #     - ./nginx.conf:/etc/nginx/nginx.conf:ro
+  #     - ./ssl:/etc/nginx/ssl:ro
+  #   depends_on:
+  #     - short-video-ai
+  #   restart: unless-stopped
+  #   networks:
+  #     - short-video-ai-network
+
+networks:
+  short-video-ai-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
